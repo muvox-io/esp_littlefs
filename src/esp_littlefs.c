@@ -306,6 +306,11 @@ esp_err_t esp_vfs_littlefs_register(const esp_vfs_littlefs_conf_t * conf)
     assert(conf->base_path);
     const esp_vfs_t vfs = vfs_littlefs_create_struct(!conf->read_only);
 
+#if CONFIG_LITTLEFS_PROXY_TASK
+start_flash_proxy_task();
+
+#endif
+
     esp_err_t err = esp_littlefs_init(conf);
     if (err != ESP_OK) {
         ESP_LOGE(ESP_LITTLEFS_TAG, "Failed to initialize LittleFS");

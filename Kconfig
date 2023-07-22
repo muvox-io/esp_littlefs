@@ -208,4 +208,13 @@ menu "LittleFS"
             bool "Write LittleFS 2.0 (no forward-looking erase-state CRCs)"
 
     endchoice
+    config LITTLEFS_PROXY_TASK
+        bool "Enable proxy task"
+        default "n"
+        help
+            Enable proxy task to handle file operations in a separate task.
+            This is useful when the file system is used from tasks which
+            have their stack in external RAM. All file operations will be
+            handled in the proxy task. The proxy task will be created
+            automatically when the file system is mounted.
 endmenu

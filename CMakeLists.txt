@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
 file(GLOB SOURCES src/littlefs/*.c)
-list(APPEND SOURCES src/esp_littlefs.c src/littlefs_api.c src/lfs_config.c)
+list(APPEND SOURCES src/esp_littlefs.c src/lfs_config.c)
+
+if(CONFIG_LITTLEFS_PROXY_TASK)
+    list(APPEND SOURCES src/littlefs_proxy_api.c)
+else()
+    list(APPEND SOURCES src/littlefs_api.c)
+endif()
 
 if(IDF_VERSION_MAJOR GREATER_EQUAL 5)
     list(APPEND pub_requires esp_partition)

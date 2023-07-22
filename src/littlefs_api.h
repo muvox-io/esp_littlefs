@@ -100,6 +100,14 @@ int littlefs_api_erase(const struct lfs_config *c, lfs_block_t block);
  */
 int littlefs_api_sync(const struct lfs_config *c);
 
+#ifdef CONFIG_LITTLEFS_PROXY_TASK
+/**
+ * @brief Start the flash proxy task.
+ * 
+ */
+void start_flash_proxy_task();
+#endif
+
 #ifdef __cplusplus
 }
 #endif
