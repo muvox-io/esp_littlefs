@@ -68,16 +68,6 @@ static flash_op_t current_flash_op = {0};
  */
 static int flash_op_result = 0;
 
-/**
- * @brief A buffer stored in IRAM that contains the data to be written or read.
- */
-static uint8_t* flash_proxy_buf = NULL;
-
-/**
- * @brief The size of the flash_proxy_buf, so it can be reallocated if needed.
- */
-static size_t flash_proxy_buf_size = 0;
-
 static void flash_proxy_task(void* pvParameters);
 
 void start_flash_proxy_task() {
@@ -127,18 +117,6 @@ static void flash_proxy_task(void* pvParameters) {
   }
 }
 
-static void ensure_flash_proxy_buf_size(size_t size) {
-  if (flash_proxy_buf == NULL) {
-    flash_proxy_buf =
-        heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    flash_proxy_buf_size = size;
-  } else if (flash_proxy_buf_size < size) {
-    flash_proxy_buf = heap_caps_realloc(flash_proxy_buf, size,
-                                        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    flash_proxy_buf_size = size;
-  }
-}
-
 int littlefs_api_read(const struct lfs_config* c, lfs_block_t block,
                       lfs_off_t off, void* buffer, lfs_size_t size) {
   esp_littlefs_t* efs = c->context;
@@ -147,17 +125,15 @@ int littlefs_api_read(const struct lfs_config* c, lfs_block_t block,
     ESP_LOGE(ESP_LITTLEFS_TAG, "flash proxy task not started");
     return LFS_ERR_IO;
   }
-  ensure_flash_proxy_buf_size(size);
 
   current_flash_op.type = FLASH_OP_READ;
   current_flash_op.partition = efs->partition;
   current_flash_op.part_off = part_off;
-  current_flash_op.buffer = flash_proxy_buf;
+  current_flash_op.buffer = buffer;
   current_flash_op.size = size;
+
   xTaskNotifyGive(flash_proxy_task_handle);
   xSemaphoreTake(operation_done_sem, portMAX_DELAY);
-
-  memcpy(buffer, flash_proxy_buf, size);
 
   return 0;
 }
@@ -170,12 +146,10 @@ int littlefs_api_prog(const struct lfs_config* c, lfs_block_t block,
     ESP_LOGE(ESP_LITTLEFS_TAG, "flash proxy task not started");
     return LFS_ERR_IO;
   }
-  ensure_flash_proxy_buf_size(size);
-  memcpy(flash_proxy_buf, buffer, size);
   current_flash_op.type = FLASH_OP_WRITE;
   current_flash_op.partition = efs->partition;
   current_flash_op.part_off = part_off;
-  current_flash_op.buffer = flash_proxy_buf;
+  current_flash_op.buffer = (void*)buffer;
   current_flash_op.size = size;
 
   xTaskNotifyGive(flash_proxy_task_handle);
